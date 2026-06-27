@@ -148,6 +148,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- TUI/local: stop advertising unsupported shared `/status` and `/compact` commands in local mode and return an explicit unsupported-command message instead of sending them to the embedded model. Fixes #71592.
 - Compute plugin callback authorization dynamically [AI]. (#78866) Thanks @pgondhi987.
 - fix(active-memory): require admin scope for global toggles [AI]. (#78863) Thanks @pgondhi987.
 - Honor owner enforcement for native commands [AI]. (#78864) Thanks @pgondhi987.

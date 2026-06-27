@@ -11,6 +11,7 @@ const REASONING_LEVELS = ["on", "off"];
 const ELEVATED_LEVELS = ["on", "off", "ask", "full"];
 const ACTIVATION_LEVELS = ["mention", "always"];
 const USAGE_FOOTER_LEVELS = ["off", "tokens", "full"];
+const LOCAL_UNSUPPORTED_SHARED_COMMANDS = new Set(["status", "compact"]);
 
 export type ParsedCommand = {
   name: string;
@@ -30,6 +31,10 @@ const COMMAND_ALIASES: Record<string, string> = {
   gwstatus: "gateway-status",
 };
 
+function normalizeCommandNameToken(name: string): string {
+  return normalizeLowercaseStringOrEmpty(name).replace(/:.*$/, "");
+}
+
 function createLevelCompletion(
   levels: string[],
 ): NonNullable<SlashCommand["getArgumentCompletions"]> {
@@ -47,12 +52,17 @@ export function parseCommand(input: string): ParsedCommand {
   if (!trimmed) {
     return { name: "", args: "" };
   }
-  const [name, ...rest] = trimmed.split(/\s+/);
-  const normalized = normalizeLowercaseStringOrEmpty(name);
+  const colonMatch = trimmed.match(/^([^\s:]+)\s*:(.*)$/);
+  const [name, ...rest] = colonMatch ? [colonMatch[1], colonMatch[2]] : trimmed.split(/\s+/);
+  const normalized = normalizeCommandNameToken(name);
   return {
     name: COMMAND_ALIASES[normalized] ?? normalized,
     args: rest.join(" ").trim(),
   };
+}
+
+export function isLocalUnsupportedSharedCommand(name: string): boolean {
+  return LOCAL_UNSUPPORTED_SHARED_COMMANDS.has(normalizeCommandNameToken(name));
 }
 
 export function getSlashCommands(options: SlashCommandOptions = {}): SlashCommand[] {
@@ -143,7 +153,7 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
     const aliases = command.textAliases.length > 0 ? command.textAliases : [`/${command.key}`];
     for (const alias of aliases) {
       const name = alias.replace(/^\//, "").trim();
-      if (!name || seen.has(name)) {
+      if (!name || seen.has(name) || (options.local && isLocalUnsupportedSharedCommand(name))) {
         continue;
       }
       seen.add(name);
@@ -155,12 +165,12 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
 }
 
 export function helpText(options: SlashCommandOptions = {}): string {
+  const sharedHelpCommands = ["/commands", ...(options.local ? [] : ["/status", "/compact"])];
   const thinkLevels = formatThinkingLevels(options.provider, options.model, "|");
   return [
     "Slash commands:",
     "/help",
-    "/commands",
-    "/status",
+    ...sharedHelpCommands,
     "/gateway-status",
     "/gwstatus",
     ...(options.local ? ["/auth [provider]"] : []),

@@ -218,6 +218,44 @@ describe("tui command handlers", () => {
     );
   });
 
+  it("does not forward /status to the embedded local backend", async () => {
+    const { handleCommand, sendChat, addUser, addSystem } = createHarness({
+      opts: { local: true },
+    });
+
+    await handleCommand("/status");
+
+    expect(sendChat).not.toHaveBeenCalled();
+    expect(addUser).not.toHaveBeenCalled();
+    expect(addSystem).toHaveBeenCalledWith("/status is not supported in local TUI mode");
+  });
+
+  it("does not forward /compact to the embedded local backend", async () => {
+    const { handleCommand, sendChat, addUser, addSystem } = createHarness({
+      opts: { local: true },
+    });
+
+    await handleCommand("/compact");
+
+    expect(sendChat).not.toHaveBeenCalled();
+    expect(addUser).not.toHaveBeenCalled();
+    expect(addSystem).toHaveBeenCalledWith("/compact is not supported in local TUI mode");
+  });
+
+  it("does not forward colon-form shared commands to the embedded local backend", async () => {
+    const { handleCommand, sendChat, addUser, addSystem } = createHarness({
+      opts: { local: true },
+    });
+
+    await handleCommand("/compact: focus on decisions");
+    await handleCommand("/status:");
+
+    expect(sendChat).not.toHaveBeenCalled();
+    expect(addUser).not.toHaveBeenCalled();
+    expect(addSystem).toHaveBeenCalledWith("/compact is not supported in local TUI mode");
+    expect(addSystem).toHaveBeenCalledWith("/status is not supported in local TUI mode");
+  });
+
   it("opens a context mode selector for /context without sending immediately", async () => {
     const { handleCommand, sendChat, openOverlay } = createHarness();
 

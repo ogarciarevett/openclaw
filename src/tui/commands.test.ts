@@ -6,6 +6,15 @@ describe("parseCommand", () => {
     expect(parseCommand("/elev full")).toEqual({ name: "elevated", args: "full" });
   });
 
+  it("normalizes colon command forms", () => {
+    expect(parseCommand("/compact: focus on decisions")).toEqual({
+      name: "compact",
+      args: "focus on decisions",
+    });
+    expect(parseCommand("/compact:focus")).toEqual({ name: "compact", args: "focus" });
+    expect(parseCommand("/status:")).toEqual({ name: "status", args: "" });
+  });
+
   it("normalizes gateway-status aliases", () => {
     expect(parseCommand("/gwstatus")).toEqual({ name: "gateway-status", args: "" });
   });
@@ -37,6 +46,12 @@ describe("getSlashCommands", () => {
     expect(status?.description).toBe("Show current status.");
     expect(gatewayStatus?.description).toBe("Show gateway status summary");
     expect(crestodian?.description).toBe("Return to Crestodian");
+  });
+
+  it("does not advertise shared-only slash commands in local mode", () => {
+    const commands = getSlashCommands({ local: true });
+    expect(commands.find((command) => command.name === "status")).toBeUndefined();
+    expect(commands.find((command) => command.name === "compact")).toBeUndefined();
   });
 
   it("uses session-provided thinking levels for completions", () => {
@@ -77,5 +92,12 @@ describe("helpText", () => {
     expect(output).toContain("/gateway-status");
     expect(output).toContain("/gwstatus");
     expect(output).toContain("/crestodian [request]");
+  });
+
+  it("omits shared-only slash commands from local help", () => {
+    const output = helpText({ local: true });
+    expect(output).not.toContain("/status");
+    expect(output).not.toContain("/compact");
+    expect(output).toContain("/gateway-status");
   });
 });

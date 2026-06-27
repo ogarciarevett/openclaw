@@ -10,7 +10,7 @@ import {
 import type { SessionsPatchResult } from "../gateway/protocol/index.js";
 import { formatRelativeTimestamp } from "../infra/format-time/format-relative.ts";
 import { normalizeAgentId } from "../routing/session-key.js";
-import { helpText, parseCommand } from "./commands.js";
+import { helpText, isLocalUnsupportedSharedCommand, parseCommand } from "./commands.js";
 import type { ChatLog } from "./components/chat-log.js";
 import {
   createFilterableSelectList,
@@ -284,6 +284,11 @@ export function createCommandHandlers(context: CommandHandlerContext) {
   const handleCommand = async (raw: string) => {
     const { name, args } = parseCommand(raw);
     if (!name) {
+      return;
+    }
+    if (opts.local && isLocalUnsupportedSharedCommand(name)) {
+      chatLog.addSystem(`/${name} is not supported in local TUI mode`);
+      tui.requestRender();
       return;
     }
     switch (name) {
